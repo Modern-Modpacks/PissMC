@@ -90,7 +90,7 @@ diff -Nru ./mojang/rubydung/pissmc/Loader.java ../../src/main/java/com/mojang/ru
 +    }
 +}
 diff -Nru ./mojang/rubydung/Player.java ../../src/main/java/com/mojang/rubydung/Player.java
---- ./mojang/rubydung/Player.java	2023-09-24 20:34:02.127379145 +0300
+--- ./mojang/rubydung/Player.java	2023-09-24 21:23:07.573551494 +0300
 +++ ../../src/main/java/com/mojang/rubydung/Player.java	2023-09-22 23:51:40.293621506 +0300
 @@ -25,6 +25,10 @@
    public float yd;
@@ -115,8 +115,8 @@ diff -Nru ./mojang/rubydung/Player.java ../../src/main/java/com/mojang/rubydung/
        resetPos(); 
      if (Keyboard.isKeyDown(200) || Keyboard.isKeyDown(17))
 diff -Nru ./mojang/rubydung/RubyDung.java ../../src/main/java/com/mojang/rubydung/RubyDung.java
---- ./mojang/rubydung/RubyDung.java	2023-09-24 20:34:02.159378955 +0300
-+++ ../../src/main/java/com/mojang/rubydung/RubyDung.java	2023-09-24 20:33:51.155451904 +0300
+--- ./mojang/rubydung/RubyDung.java	2023-09-24 21:23:07.613551397 +0300
++++ ../../src/main/java/com/mojang/rubydung/RubyDung.java	2023-09-24 21:23:02.689563366 +0300
 @@ -3,7 +3,11 @@
  import com.mojang.rubydung.level.Chunk;
  import com.mojang.rubydung.level.Level;
@@ -164,7 +164,7 @@ diff -Nru ./mojang/rubydung/RubyDung.java ../../src/main/java/com/mojang/rubydun
      Display.create();
      Keyboard.create();
      Mouse.create();
-@@ -59,9 +67,12 @@
+@@ -59,6 +67,7 @@
      this.levelRenderer = new LevelRenderer(this.level);
      this.player = new Player(this.level);
      Mouse.setGrabbed(true);
@@ -172,11 +172,17 @@ diff -Nru ./mojang/rubydung/RubyDung.java ../../src/main/java/com/mojang/rubydun
    }
    
    public void destroy() {
-+    if (Loader.triggerEvent(Event.GAME_DESTROY).isCanceled()) return;
+@@ -78,7 +87,9 @@
+     long lastTime = System.currentTimeMillis();
+     int frames = 0;
+     try {
+-      while (!Keyboard.isKeyDown(1) && !Display.isCloseRequested()) {
++      while (true) {
++        if ((Keyboard.isKeyDown(1) || Display.isCloseRequested()) && !Loader.triggerEvent(Event.GAME_DESTROY).isCanceled()) break;
 +
-     this.level.save();
-     Mouse.destroy();
-     Keyboard.destroy();
+         this.timer.advanceTime();
+         for (int i = 0; i < this.timer.ticks; i++)
+           tick(); 
 @@ -99,7 +110,9 @@
    }
    
