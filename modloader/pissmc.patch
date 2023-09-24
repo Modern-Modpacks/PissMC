@@ -12,12 +12,22 @@ diff -Nru ./mojang/rubydung/pissmc/Event.java ../../src/main/java/com/mojang/rub
 +}
 diff -Nru ./mojang/rubydung/pissmc/EventResult.java ../../src/main/java/com/mojang/rubydung/pissmc/EventResult.java
 --- ./mojang/rubydung/pissmc/EventResult.java	1970-01-01 03:00:00.000000000 +0300
-+++ ../../src/main/java/com/mojang/rubydung/pissmc/EventResult.java	2023-09-23 18:35:42.039283615 +0300
-@@ -0,0 +1,5 @@
++++ ../../src/main/java/com/mojang/rubydung/pissmc/EventResult.java	2023-09-24 20:33:09.691734989 +0300
+@@ -0,0 +1,15 @@
 +package com.mojang.rubydung.pissmc;
 +
 +public class EventResult {
-+    
++    private boolean canceled = false;
++
++    public void setCanceled(boolean newVal) {
++        canceled = newVal;
++    }
++    public void cancel() {
++        setCanceled(true);
++    }
++    public boolean isCanceled() {
++        return canceled;
++    }
 +}
 diff -Nru ./mojang/rubydung/pissmc/Loader.java ../../src/main/java/com/mojang/rubydung/pissmc/Loader.java
 --- ./mojang/rubydung/pissmc/Loader.java	1970-01-01 03:00:00.000000000 +0300
@@ -80,7 +90,7 @@ diff -Nru ./mojang/rubydung/pissmc/Loader.java ../../src/main/java/com/mojang/ru
 +    }
 +}
 diff -Nru ./mojang/rubydung/Player.java ../../src/main/java/com/mojang/rubydung/Player.java
---- ./mojang/rubydung/Player.java	2023-09-24 20:28:27.412433792 +0300
+--- ./mojang/rubydung/Player.java	2023-09-24 20:34:02.127379145 +0300
 +++ ../../src/main/java/com/mojang/rubydung/Player.java	2023-09-22 23:51:40.293621506 +0300
 @@ -25,6 +25,10 @@
    public float yd;
@@ -105,8 +115,8 @@ diff -Nru ./mojang/rubydung/Player.java ../../src/main/java/com/mojang/rubydung/
        resetPos(); 
      if (Keyboard.isKeyDown(200) || Keyboard.isKeyDown(17))
 diff -Nru ./mojang/rubydung/RubyDung.java ../../src/main/java/com/mojang/rubydung/RubyDung.java
---- ./mojang/rubydung/RubyDung.java	2023-09-24 20:28:27.444433717 +0300
-+++ ../../src/main/java/com/mojang/rubydung/RubyDung.java	2023-09-23 23:01:26.165131251 +0300
+--- ./mojang/rubydung/RubyDung.java	2023-09-24 20:34:02.159378955 +0300
++++ ../../src/main/java/com/mojang/rubydung/RubyDung.java	2023-09-24 20:33:51.155451904 +0300
 @@ -3,7 +3,11 @@
  import com.mojang.rubydung.level.Chunk;
  import com.mojang.rubydung.level.Level;
@@ -119,15 +129,16 @@ diff -Nru ./mojang/rubydung/RubyDung.java ../../src/main/java/com/mojang/rubydun
  import java.nio.FloatBuffer;
  import java.nio.IntBuffer;
  import javax.swing.JOptionPane;
-@@ -18,6 +22,7 @@
+@@ -17,7 +21,7 @@
+ import org.lwjgl.util.glu.GLU;
  
  public class RubyDung implements Runnable {
-   private static final boolean FULLSCREEN_MODE = false;
+-  private static final boolean FULLSCREEN_MODE = false;
 +  private static RubyDung instance;
    
    private int width;
    
-@@ -32,15 +37,19 @@
+@@ -32,15 +36,19 @@
    private LevelRenderer levelRenderer;
    
    private Player player;
@@ -153,7 +164,7 @@ diff -Nru ./mojang/rubydung/RubyDung.java ../../src/main/java/com/mojang/rubydun
      Display.create();
      Keyboard.create();
      Mouse.create();
-@@ -59,6 +68,7 @@
+@@ -59,9 +67,12 @@
      this.levelRenderer = new LevelRenderer(this.level);
      this.player = new Player(this.level);
      Mouse.setGrabbed(true);
@@ -161,14 +172,11 @@ diff -Nru ./mojang/rubydung/RubyDung.java ../../src/main/java/com/mojang/rubydun
    }
    
    public void destroy() {
-@@ -66,6 +76,7 @@
++    if (Loader.triggerEvent(Event.GAME_DESTROY).isCanceled()) return;
++
+     this.level.save();
      Mouse.destroy();
      Keyboard.destroy();
-     Display.destroy();
-+    Loader.triggerEvent(Event.GAME_DESTROY);
-   }
-   
-   public void run() {
 @@ -99,7 +110,9 @@
    }
    
