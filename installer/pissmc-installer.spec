@@ -2,11 +2,11 @@
 
 
 a = Analysis(
-    ['src\\pissmc-installer.py'],
+    ['src/pissmc-installer.py'],
     pathex=[],
     binaries=[],
-    datas=[],
-    hiddenimports=[],
+    datas=[("src/assets/*", "assets")],
+    hiddenimports=["PIL._tkinter_finder"],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
