@@ -1,12 +1,15 @@
 from tkinter import *
 from os import path, chdir, getcwd, mkdir
-from shutil import copy
+from shutil import copy, move
 from subprocess import run, DEVNULL
 from tempfile import TemporaryDirectory
 from urllib import request
 from zipfile import ZipFile
+from platform import system
 
-from .utils import _show_err, _clean_path, _get_patch_command
+from .utils import _show_err, _clean_path
+
+PATCH_COMMAND = "patch" if system().lower()!="windows" else "C:\\Program Files\\Git\\usr\\bin\\patch.exe"
 
 def start_install(win:Tk, instancedir:str, channel:str) -> None:
     instancedir = path.sep.join(_clean_path(instancedir).split(path.sep)[:-1])
@@ -20,7 +23,7 @@ def start_install(win:Tk, instancedir:str, channel:str) -> None:
     if run(("java", "-version"), stderr=DEVNULL).returncode!=0:
         _show_err(win, "Java not found or your default installation is broken.")
         return
-    if run((_get_patch_command(), "-v"), stdout=DEVNULL).returncode!=0:
+    if run((PATCH_COMMAND, "-v"), stdout=DEVNULL).returncode!=0:
         _show_err(win, "Patch command not found. If you are on Windows, please install git first.")
         return
 
@@ -39,13 +42,13 @@ def start_install(win:Tk, instancedir:str, channel:str) -> None:
     mainlabel = Label(loading, text="Installing...")
     mainlabel.pack(expand=True)
 
-    mainlabel.after(10, lambda: _install_pissmc(rdfile, channel, gsonfile, lwjglfile))
+    mainlabel.after(10, lambda: _install_pissmc(rdfile, channel))
 
-def _install_pissmc(rdfile:str, channel:str, gsonfile:str, lwjglfile:str) -> None:
+def _install_pissmc(rdfile:str, channel:str) -> None:
     with TemporaryDirectory() as tempdir:
         chdir(tempdir)
         _download_files(rdfile, channel)
-        _patch_jar(gsonfile, lwjglfile)
+        _patch_jar()
 
         print(tempdir)
 
@@ -55,15 +58,16 @@ def _download_files(rdfile:str, channel:str) -> None:
     copy(rdfile, getcwd())
     request.urlretrieve(f"https://raw.githubusercontent.com/Modern-Modpacks/PissMC/main/modloader/pissmc-{channel}.patch", "piss.patch")
     request.urlretrieve(f"https://raw.githubusercontent.com/Modern-Modpacks/PissMC/main/modloader/gradle/gradlew", "gradlew")
+    request.urlretrieve(f"https://raw.githubusercontent.com/Modern-Modpacks/PissMC/main/modloader/gradle/gradlew.bat", "gradlew.bat")
     request.urlretrieve(f"https://raw.githubusercontent.com/Modern-Modpacks/PissMC/main/modloader/gradle/build.gradle", "build.gradle")
     request.urlretrieve(f"https://github.com/intoolswetrust/jd-cli/releases/download/jd-cli-1.2.0/jd-cli-1.2.0-dist.zip", "jd-cli.zip")
 
     with ZipFile("jd-cli.zip") as f: f.extract("jd-cli.jar")
-def _patch_jar(gsonfile:str, lwjglfile:str) -> None:
+def _patch_jar() -> None:
     run(("java", "-jar", "jd-cli.jar", "minecraft-rd-132211-client.jar", "-od", "src"))
     chdir(path.join("src", "com"))
-    mkdir("lib")
-    copy(gsonfile, path.join(getcwd(), "lib"))
-    copy(lwjglfile, path.join(getcwd(), "lib"))
 
-    run(_get_patch_command()+" -s -p0 < "+path.join("..", "..", "piss.patch"), shell=True)
+    run(PATCH_COMMAND+" -s -p0 < "+path.join("..", "..", "piss.patch"), shell=True)
+    move(path.join("..", "..", "gradlew"), getcwd())
+    move(path.join("..", "..", "gradlew.bat"), getcwd())
+    move(path.join("..", "..", "build.gradle"), getcwd())

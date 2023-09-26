@@ -2,7 +2,6 @@ from tkinter import *
 from platform import system
 
 def _clean_path(string:str) -> str: return string.replace("\n", "")
-def _get_patch_command() -> str: return "patch" if system().lower()!="windows" else "C:\\Program Files\\Git\\usr\\bin\\patch.exe"
 
 def _show_err(win:Tk, err:str) -> None:
     popup=Toplevel(win)
