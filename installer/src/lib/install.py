@@ -30,14 +30,6 @@ def start_install(win:Tk, instancedir:str, channel:str) -> None:
     if not path.exists(rdfile): 
         _show_err(win, "Vanilla rd-132211 jar not found, launch an instance with that version at least once.")
         return
-    gsonfile = path.join(multimcdir, "libraries", "com", "google", "code", "gson", "gson", "2.10", "gson-2.10.jar")
-    if not path.exists(gsonfile): 
-        _show_err(win, "Gson 2.10 not found.")
-        return
-    lwjglfile = path.join(multimcdir, "libraries", "org", "lwjgl", "lwjgl", "lwjgl", "2.9.4-nightly-20150209", "lwjgl-2.9.4-nightly-20150209.jar")
-    if not path.exists(lwjglfile): 
-        _show_err(win, "Lwjgl 2.9.4 not found.")
-        return
 
     loading=Toplevel(win)
     loading.resizable(False, False)
@@ -62,6 +54,8 @@ def _install_pissmc(rdfile:str, channel:str, gsonfile:str, lwjglfile:str) -> Non
 def _download_files(rdfile:str, channel:str) -> None:
     copy(rdfile, getcwd())
     request.urlretrieve(f"https://raw.githubusercontent.com/Modern-Modpacks/PissMC/main/modloader/pissmc-{channel}.patch", "piss.patch")
+    request.urlretrieve(f"https://raw.githubusercontent.com/Modern-Modpacks/PissMC/main/modloader/gradle/gradlew", "gradlew")
+    request.urlretrieve(f"https://raw.githubusercontent.com/Modern-Modpacks/PissMC/main/modloader/gradle/build.gradle", "build.gradle")
     request.urlretrieve(f"https://github.com/intoolswetrust/jd-cli/releases/download/jd-cli-1.2.0/jd-cli-1.2.0-dist.zip", "jd-cli.zip")
 
     with ZipFile("jd-cli.zip") as f: f.extract("jd-cli.jar")
