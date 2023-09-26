@@ -3,7 +3,7 @@ from os import path, chdir
 from pkgutil import get_data
 from PIL import Image, ImageTk
 
-from lib import install
+from lib import start_install
 
 chdir(path.dirname(path.abspath(__file__)))
 
@@ -25,19 +25,16 @@ Label(app, text="One step away from getting the (self-proclaimed) best modloader
 inputs = Frame(app)
 inputs.pack(expand=True)
 Label(inputs, text="Select the version channel you want to install:").pack()
-initchoice = StringVar()
-initchoice.set("Stable")
-OptionMenu(inputs, initchoice, *["Stable", "Latest"]).pack()
-Label(inputs, text="Path to your \"multimc\"/\"PrismLauncher\" folder (the parent of your \"instances\" directory):").pack()
-multidir = Text(inputs, height=1, width=70, wrap="none")
-multidir.pack()
-multidir.bind("<Return>", lambda _: "break")
-Label(inputs, text="Path to your instance folder (the parent of your \".minecraft\" directory):").pack()
-instancedir = Text(inputs, height=1, width=70, wrap="none")
-instancedir.pack()
-instancedir.bind("<Return>", lambda _: "break")
+channel = StringVar()
+choices = ["Stable (Recommended)", "Latest (Beta)"]
+channel.set(choices[0])
+OptionMenu(inputs, channel, *choices).pack()
+Label(inputs, text="Path to your \".minecraft\" folder (must be a multimc/prism instance):").pack()
+mcdir = Text(inputs, height=1, width=70, wrap="none")
+mcdir.pack()
+mcdir.bind("<Return>", lambda _: "break")
 
-Button(app, text="Submit", command=lambda: install(app, multidir.get("1.0", END), instancedir.get("1.0", END))).pack(side=BOTTOM, pady=10)
+Button(app, text="Submit", command=lambda: start_install(app, mcdir.get("1.0", END), channel.get().lower().split(" ")[0])).pack(side=BOTTOM, pady=10)
 
 try: app.mainloop()
 except KeyboardInterrupt: exit(0)
