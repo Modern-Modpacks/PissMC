@@ -1,1 +1,27 @@
-../../private/modloader/build.gradle
+plugins {
+    id 'application' 
+    id 'com.github.johnrengelman.shadow' version '7.1.2'
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'com.google.code.gson:gson:2.10.1'
+    implementation fileTree(dir: "lib", include: ["*.jar"])
+}
+application {
+    mainClass = 'com.mojang.rubydung.RubyDung' 
+}
+
+task MultiMcMoveTask {
+    project.delete("/home/g_cat/.local/share/multimc/instances/PissMC/libraries/customjar-1.jar")
+    copy {
+        from 'build/libs/pissmc-all.jar'
+        into "/home/g_cat/.local/share/multimc/instances/PissMC/libraries"
+        rename { String fileName -> fileName.replace("pissmc-all", "customjar-1")}
+    }
+}
+
+build.dependsOn MultiMcMoveTask
