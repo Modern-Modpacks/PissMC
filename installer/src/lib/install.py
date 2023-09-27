@@ -55,12 +55,17 @@ def _install_pissmc(rdfile:str, channel:str) -> None:
         while 1: pass
 
 def _download_files(rdfile:str, channel:str) -> None:
+    WRAPPER_PATH = path.join("gradle", "wrapper")
+    makedirs(WRAPPER_PATH, exist_ok=True)
+
     copy(rdfile, getcwd())
     request.urlretrieve(f"https://raw.githubusercontent.com/Modern-Modpacks/PissMC/main/modloader/pissmc-{channel}.patch", "piss.patch")
     request.urlretrieve(f"https://raw.githubusercontent.com/Modern-Modpacks/PissMC/main/modloader/gradle/gradlew", "gradlew")
     request.urlretrieve(f"https://raw.githubusercontent.com/Modern-Modpacks/PissMC/main/modloader/gradle/gradlew.bat", "gradlew.bat")
     request.urlretrieve(f"https://raw.githubusercontent.com/Modern-Modpacks/PissMC/main/modloader/gradle/build.gradle", "build.gradle")
     request.urlretrieve(f"https://raw.githubusercontent.com/Modern-Modpacks/PissMC/main/modloader/gradle/settings.gradle", "settings.gradle")
+    request.urlretrieve(f"https://raw.githubusercontent.com/Modern-Modpacks/PissMC/main/modloader/gradle/wrapper.jar", path.join(WRAPPER_PATH, "gradle-wrapper.jar"))
+    request.urlretrieve(f"https://raw.githubusercontent.com/Modern-Modpacks/PissMC/main/modloader/gradle/wrapper.properties", path.join(WRAPPER_PATH, "gradle-wrapper.properties"))
     request.urlretrieve(f"https://github.com/intoolswetrust/jd-cli/releases/download/jd-cli-1.2.0/jd-cli-1.2.0-dist.zip", "jd-cli.zip")
 
     with ZipFile("jd-cli.zip") as f: f.extract("jd-cli.jar")
