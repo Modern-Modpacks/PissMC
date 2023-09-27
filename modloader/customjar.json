@@ -1,0 +1,10 @@
+{
+    "formatVersion": 1,
+    "mainJar": {
+        "MMC-displayname": "minecraft-piss-client",
+        "MMC-hint": "local",
+        "name": "org.multimc:customjar:1"
+    },
+    "name": "PissMC",
+    "uid": "customjar"
+}

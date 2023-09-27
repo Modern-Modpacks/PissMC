@@ -2,6 +2,7 @@ from tkinter import *
 from platform import system
 
 def _clean_path(string:str) -> str: return string.replace("\n", "")
+def _is_windows() -> bool: system().lower()=="windows"
 
 def _show_err(win:Tk, err:str) -> None:
     popup=Toplevel(win)

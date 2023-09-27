@@ -5,11 +5,10 @@ from subprocess import run, DEVNULL
 from tempfile import TemporaryDirectory
 from urllib import request
 from zipfile import ZipFile
-from platform import system
 
-from .utils import _show_err, _clean_path
+from .utils import _show_err, _clean_path, _is_windows
 
-PATCH_COMMAND = "patch" if system().lower()!="windows" else "C:\\Program Files\\Git\\usr\\bin\\patch.exe"
+PATCH_COMMAND = "patch" if not _is_windows() else "C:\\Program Files\\Git\\usr\\bin\\patch.exe"
 
 def start_install(win:Tk, instancedir:str, channel:str) -> None:
     instancedir = path.sep.join(_clean_path(instancedir).split(path.sep)[:-1])
@@ -42,13 +41,13 @@ def start_install(win:Tk, instancedir:str, channel:str) -> None:
     mainlabel = Label(loading, text="Installing...")
     mainlabel.pack(expand=True)
 
-    mainlabel.after(10, lambda: _install_pissmc(rdfile, channel))
+    mainlabel.after(10, lambda: _install_pissmc(rdfile, channel, instancedir))
 
-def _install_pissmc(rdfile:str, channel:str) -> None:
+def _install_pissmc(rdfile:str, channel:str, instancedir:str) -> None:
     with TemporaryDirectory() as tempdir:
         chdir(tempdir)
         _download_files(rdfile, channel)
-        _patch_jar()
+        _patch_jar(instancedir)
 
         print(tempdir)
 
@@ -69,7 +68,7 @@ def _download_files(rdfile:str, channel:str) -> None:
     request.urlretrieve(f"https://github.com/intoolswetrust/jd-cli/releases/download/jd-cli-1.2.0/jd-cli-1.2.0-dist.zip", "jd-cli.zip")
 
     with ZipFile("jd-cli.zip") as f: f.extract("jd-cli.jar")
-def _patch_jar() -> None:
+def _patch_jar(instancedir:str) -> None:
     run(("java", "-jar", "jd-cli.jar", "minecraft-rd-132211-client.jar", "-od", "decomp"), stdout=DEVNULL)
 
     makedirs(path.join("src", "main", "java"), exist_ok=True)
@@ -78,4 +77,11 @@ def _patch_jar() -> None:
     move(path.join("decomp", "terrain.png"), path.join("src", "main", "resources"))
 
     run(PATCH_COMMAND+" -s -p0 < piss.patch", shell=True, stdout=DEVNULL)
+
+    if _is_windows(): run(("gradlew.bat", "build"), stdout=DEVNULL)
+    else:
+        run(("chmod", "+x", "gradlew"))
+        run(("./gradlew", "build"), stdout=DEVNULL)
+
+    
 
