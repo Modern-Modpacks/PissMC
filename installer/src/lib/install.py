@@ -60,18 +60,17 @@ def _download_files(rdfile:str, channel:str) -> None:
     request.urlretrieve(f"https://raw.githubusercontent.com/Modern-Modpacks/PissMC/main/modloader/gradle/gradlew", "gradlew")
     request.urlretrieve(f"https://raw.githubusercontent.com/Modern-Modpacks/PissMC/main/modloader/gradle/gradlew.bat", "gradlew.bat")
     request.urlretrieve(f"https://raw.githubusercontent.com/Modern-Modpacks/PissMC/main/modloader/gradle/build.gradle", "build.gradle")
+    request.urlretrieve(f"https://raw.githubusercontent.com/Modern-Modpacks/PissMC/main/modloader/gradle/settings.gradle", "settings.gradle")
     request.urlretrieve(f"https://github.com/intoolswetrust/jd-cli/releases/download/jd-cli-1.2.0/jd-cli-1.2.0-dist.zip", "jd-cli.zip")
 
     with ZipFile("jd-cli.zip") as f: f.extract("jd-cli.jar")
 def _patch_jar() -> None:
-    run(("java", "-jar", "jd-cli.jar", "minecraft-rd-132211-client.jar", "-od", "decomp"))
+    run(("java", "-jar", "jd-cli.jar", "minecraft-rd-132211-client.jar", "-od", "decomp"), stdout=DEVNULL)
 
     makedirs(path.join("src", "main", "java"), exist_ok=True)
     makedirs(path.join("src", "main", "resources"), exist_ok=True)
     move(path.join("decomp", "com"), path.join("src", "main", "java"))
     move(path.join("decomp", "terrain.png"), path.join("src", "main", "resources"))
 
-    run(PATCH_COMMAND+" -s -p0 < "+path.join("..", "..", "piss.patch"), shell=True)
-    move(path.join("..", "..", "gradlew"), getcwd())
-    move(path.join("..", "..", "gradlew.bat"), getcwd())
-    move(path.join("..", "..", "build.gradle"), getcwd())
+    run(PATCH_COMMAND+" -s -p0 < piss.patch", shell=True, stdout=DEVNULL)
+
