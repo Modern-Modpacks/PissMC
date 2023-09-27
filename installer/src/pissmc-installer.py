@@ -30,11 +30,13 @@ choices = ["Stable (Recommended)", "Latest (Beta)"]
 channel.set(choices[0])
 OptionMenu(inputs, channel, *choices).pack()
 Label(inputs, text="Path to your \".minecraft\" folder (must be a multimc/prism instance):").pack()
-mcdir = Text(inputs, height=1, width=70, wrap="none")
-mcdir.pack()
-mcdir.bind("<Return>", lambda _: "break")
+mcdir = StringVar()
+Entry(inputs, width=70, textvariable=mcdir).pack()
+Label(inputs, text="Path to your Java binary (must be Java 8):").pack()
+javabin = StringVar()
+Entry(inputs, width=70, textvariable=javabin).pack()
 
-Button(app, text="Submit", command=lambda: start_install(app, mcdir.get("1.0", END), channel.get().lower().split(" ")[0])).pack(side=BOTTOM, pady=10)
+Button(app, text="Submit", command=lambda: start_install(app, mcdir.get(), javabin.get(), channel.get().lower().split(" ")[0])).pack(side=BOTTOM, pady=10)
 
 try: app.mainloop()
 except KeyboardInterrupt: exit(0)

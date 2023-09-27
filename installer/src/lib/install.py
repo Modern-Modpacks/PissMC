@@ -5,22 +5,28 @@ from subprocess import run, DEVNULL
 from tempfile import TemporaryDirectory
 from urllib import request
 from zipfile import ZipFile
+from json import load, dump
 
 from .utils import _show_err, _clean_path, _is_windows
 
 PATCH_COMMAND = "patch" if not _is_windows() else "C:\\Program Files\\Git\\usr\\bin\\patch.exe"
 
-def start_install(win:Tk, instancedir:str, channel:str) -> None:
-    instancedir = path.sep.join(_clean_path(instancedir).split(path.sep)[:-1])
+def start_install(win:Tk, instancedir:str, javabin:str, channel:str) -> None:
+    if not (_clean_path(instancedir).replace(" ", "") or _clean_path(javabin).replace(" ", "")): 
+        _show_err(win, "Paths must not be empty.")
+        return
 
-    if not instancedir: 
-        _show_err(win, "Path must not be empty.")
-        return
+    instancedir = path.sep.join(_clean_path(instancedir).split(path.sep)[:-1])
+    javabin = _clean_path(javabin)
+
     if not path.exists(instancedir):
-        _show_err(win, "Unknown path.\nPlease check if it's correct.")
+        _show_err(win, "Unknown path \".minecraft\" path.\nPlease check if it's correct.")
         return
-    if run(("java", "-version"), stderr=DEVNULL).returncode!=0:
-        _show_err(win, "Java not found or your default installation is broken.")
+    if not path.exists(javabin):
+        _show_err(win, "Unknown path Java binary path.\nPlease check if it's correct.")
+        return
+    if run((javabin, "-version"), stderr=DEVNULL).returncode!=0:
+        _show_err(win, "Incorrect Java path or your installation is broken.")
         return
     if run((PATCH_COMMAND, "-v"), stdout=DEVNULL).returncode!=0:
         _show_err(win, "Patch command not found. If you are on Windows, please install git first.")
@@ -38,20 +44,21 @@ def start_install(win:Tk, instancedir:str, channel:str) -> None:
     loading.geometry("250x150")
     loading.title("Installing PissMC")
     loading.grab_set()
-    mainlabel = Label(loading, text="Installing...")
+    label = StringVar()
+    label.set("Installing...")
+    mainlabel = Label(loading, textvariable=label)
     mainlabel.pack(expand=True)
 
-    mainlabel.after(10, lambda: _install_pissmc(rdfile, channel, instancedir))
+    mainlabel.after(10, lambda: _install_pissmc(rdfile, channel, instancedir, javabin, loading, label))
 
-def _install_pissmc(rdfile:str, channel:str, instancedir:str) -> None:
+def _install_pissmc(rdfile:str, channel:str, instancedir:str, javabin:str, loading:Toplevel, label:StringVar) -> None:
     with TemporaryDirectory() as tempdir:
         chdir(tempdir)
         _download_files(rdfile, channel)
-        _patch_jar(instancedir)
+        _patch_jar(instancedir, javabin)
 
-        print(tempdir)
-
-        while 1: pass
+    label.set("Install successful!")
+    loading.after(3000, lambda: (loading.grab_release() or loading.destroy()))
 
 def _download_files(rdfile:str, channel:str) -> None:
     WRAPPER_PATH = path.join("gradle", "wrapper")
@@ -68,7 +75,7 @@ def _download_files(rdfile:str, channel:str) -> None:
     request.urlretrieve(f"https://github.com/intoolswetrust/jd-cli/releases/download/jd-cli-1.2.0/jd-cli-1.2.0-dist.zip", "jd-cli.zip")
 
     with ZipFile("jd-cli.zip") as f: f.extract("jd-cli.jar")
-def _patch_jar(instancedir:str) -> None:
+def _patch_jar(instancedir:str, javabin:str) -> None:
     run(("java", "-jar", "jd-cli.jar", "minecraft-rd-132211-client.jar", "-od", "decomp"), stdout=DEVNULL)
 
     makedirs(path.join("src", "main", "java"), exist_ok=True)
@@ -78,10 +85,23 @@ def _patch_jar(instancedir:str) -> None:
 
     run(PATCH_COMMAND+" -s -p0 < piss.patch", shell=True, stdout=DEVNULL)
 
-    if _is_windows(): run(("gradlew.bat", "build"), stdout=DEVNULL)
+    if _is_windows(): run(f"gradlew.bat shadowJar -Dorg.gradle.java.home=\"{path.sep.join(javabin.split(path.sep)[:-2])+path.sep}\"", shell=True, stdout=DEVNULL)
     else:
         run(("chmod", "+x", "gradlew"))
-        run(("./gradlew", "build"), stdout=DEVNULL)
+        run(f"./gradlew shadowJar -Dorg.gradle.java.home=\"{path.sep.join(javabin.split(path.sep)[:-2])+path.sep}\"", shell=True, stdout=DEVNULL)
 
-    
+    pissjar = path.join(getcwd(), "build", "libs", "pissmc-all.jar")
 
+    chdir(instancedir)
+    makedirs("patches", exist_ok=True)
+    makedirs("libraries", exist_ok=True)
+
+    request.urlretrieve(f"https://raw.githubusercontent.com/Modern-Modpacks/PissMC/main/modloader/customjar.json", path.join("patches", "customjar.json"))
+    copy(pissjar, path.join("libraries", "customjar-1.jar"))
+
+    json = load(open("mmc-pack.json"))
+    json["components"].append({
+        "cachedName": "PissMC",
+        "uid": "customjar"
+    })
+    with open("mmc-pack.json", "w") as f: dump(json, f)
