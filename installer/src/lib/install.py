@@ -1,5 +1,5 @@
 from tkinter import *
-from os import path, chdir, getcwd, mkdir
+from os import path, chdir, getcwd, makedirs
 from shutil import copy, move
 from subprocess import run, DEVNULL
 from tempfile import TemporaryDirectory
@@ -64,8 +64,12 @@ def _download_files(rdfile:str, channel:str) -> None:
 
     with ZipFile("jd-cli.zip") as f: f.extract("jd-cli.jar")
 def _patch_jar() -> None:
-    run(("java", "-jar", "jd-cli.jar", "minecraft-rd-132211-client.jar", "-od", "src"))
-    chdir(path.join("src", "com"))
+    run(("java", "-jar", "jd-cli.jar", "minecraft-rd-132211-client.jar", "-od", "decomp"))
+
+    makedirs(path.join("src", "main", "java"), exist_ok=True)
+    makedirs(path.join("src", "main", "resources"), exist_ok=True)
+    move(path.join("decomp", "com"), path.join("src", "main", "java"))
+    move(path.join("decomp", "terrain.png"), path.join("src", "main", "resources"))
 
     run(PATCH_COMMAND+" -s -p0 < "+path.join("..", "..", "piss.patch"), shell=True)
     move(path.join("..", "..", "gradlew"), getcwd())
