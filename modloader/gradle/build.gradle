@@ -13,6 +13,7 @@ repositories {
 dependencies {
     implementation 'com.google.code.gson:gson:2.10.1'
     implementation group: 'org.lwjgl.lwjgl', name: 'lwjgl', version: '2.9.2'
+    implementation group: 'org.lwjgl.lwjgl', name: 'lwjgl_util', version: '2.9.2'
 }
 application {
     mainClass = 'com.mojang.rubydung.RubyDung' 
