@@ -9,7 +9,7 @@ from json import load, dump
 
 from .utils import _show_err, _clean_path
 
-PATCH_COMMAND = "patch" if name!="nt" else "C:\\Program Files\\Git\\usr\\bin\\patch.exe"
+PATCH_COMMAND = "patch" if name!="nt" else "\"C:\\Program Files\\Git\\usr\\bin\\patch.exe\""
 
 def start_install(win:Tk, instancedir:str, javabin:str, channel:str) -> None:
     if not (_clean_path(instancedir).replace(" ", "") or _clean_path(javabin).replace(" ", "")): 
