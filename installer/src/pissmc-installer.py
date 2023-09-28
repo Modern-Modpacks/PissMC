@@ -32,7 +32,7 @@ OptionMenu(inputs, channel, *choices).pack()
 Label(inputs, text="Path to your \".minecraft\" folder (must be a multimc/prism instance):").pack()
 mcdir = StringVar()
 Entry(inputs, width=70, textvariable=mcdir).pack()
-Label(inputs, text="Path to your Java binary (must be Java 8):").pack()
+Label(inputs, text="Path to your Java binary (must be JDK 8):").pack()
 javabin = StringVar()
 Entry(inputs, width=70, textvariable=javabin).pack()
 

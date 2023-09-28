@@ -1,5 +1,5 @@
 from tkinter import *
-from os import path, chdir, getcwd, makedirs
+from os import path, chdir, getcwd, makedirs, name
 from shutil import copy, move
 from subprocess import run, DEVNULL
 from tempfile import TemporaryDirectory
@@ -7,15 +7,18 @@ from urllib import request
 from zipfile import ZipFile
 from json import load, dump
 
-from .utils import _show_err, _clean_path, _is_windows
+from .utils import _show_err, _clean_path
 
-PATCH_COMMAND = "patch" if not _is_windows() else "C:\\Program Files\\Git\\usr\\bin\\patch.exe"
+PATCH_COMMAND = "patch" if name!="nt" else "C:\\Program Files\\Git\\usr\\bin\\patch.exe"
 
 def start_install(win:Tk, instancedir:str, javabin:str, channel:str) -> None:
     if not (_clean_path(instancedir).replace(" ", "") or _clean_path(javabin).replace(" ", "")): 
         _show_err(win, "Paths must not be empty.")
         return
 
+    if name=="nt":
+        instancedir = instancedir.replace("/", "\\")
+        javabin = javabin.replace("/", "\\")
     instancedir = path.sep.join(_clean_path(instancedir).split(path.sep)[:-1])
     javabin = _clean_path(javabin)
 
@@ -28,7 +31,7 @@ def start_install(win:Tk, instancedir:str, javabin:str, channel:str) -> None:
     if run((javabin, "-version"), stderr=DEVNULL).returncode!=0:
         _show_err(win, "Incorrect Java path or your installation is broken.")
         return
-    if run((PATCH_COMMAND, "-v"), stdout=DEVNULL).returncode!=0:
+    if run(PATCH_COMMAND+" -v", stdout=DEVNULL, shell=True).returncode!=0:
         _show_err(win, "Patch command not found. If you are on Windows, please install git first.")
         return
 
@@ -85,7 +88,7 @@ def _patch_jar(instancedir:str, javabin:str) -> None:
 
     run(PATCH_COMMAND+" -s -p0 < piss.patch", shell=True, stdout=DEVNULL)
 
-    if _is_windows(): run(f"gradlew.bat shadowJar -Dorg.gradle.java.home=\"{path.sep.join(javabin.split(path.sep)[:-2])+path.sep}\"", shell=True, stdout=DEVNULL)
+    if name=="nt": run(f"gradlew.bat shadowJar -Dorg.gradle.java.home=\"{path.sep.join(javabin.split(path.sep)[:-2])+path.sep}", shell=True, stdout=DEVNULL)
     else:
         run(("chmod", "+x", "gradlew"))
         run(f"./gradlew shadowJar -Dorg.gradle.java.home=\"{path.sep.join(javabin.split(path.sep)[:-2])+path.sep}\"", shell=True, stdout=DEVNULL)

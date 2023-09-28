@@ -3,7 +3,7 @@
 
 a = Analysis(
     ['src/pissmc-installer.py'],
-    pathex=[],
+    pathex=['/home/g_cat/.local/lib/python3.10/site-packages'],
     binaries=[],
     datas=[("src/assets/*", "assets")],
     hiddenimports=["PIL._tkinter_finder"],
