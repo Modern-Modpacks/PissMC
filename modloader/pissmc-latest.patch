@@ -34,8 +34,8 @@ diff -Nru decomped/src/main/java/com/mojang/rubydung/pissmc/EventResult.java src
 +}
 diff -Nru decomped/src/main/java/com/mojang/rubydung/pissmc/Loader.java src/main/java/com/mojang/rubydung/pissmc/Loader.java
 --- decomped/src/main/java/com/mojang/rubydung/pissmc/Loader.java	1970-01-01 03:00:00.000000000 +0300
-+++ src/main/java/com/mojang/rubydung/pissmc/Loader.java	2023-09-23 22:58:36.745363499 +0300
-@@ -0,0 +1,56 @@
++++ src/main/java/com/mojang/rubydung/pissmc/Loader.java	2023-09-29 21:53:42.100949153 +0300
+@@ -0,0 +1,80 @@
 +package com.mojang.rubydung.pissmc;
 +
 +import java.io.File;
@@ -46,8 +46,11 @@ diff -Nru decomped/src/main/java/com/mojang/rubydung/pissmc/Loader.java src/main
 +import java.net.URLClassLoader;
 +import java.nio.file.Paths;
 +import java.util.ArrayList;
++import java.util.Enumeration;
 +import java.util.HashMap;
 +import java.util.function.Consumer;
++import java.util.jar.JarEntry;
++import java.util.jar.JarFile;
 +
 +import com.google.gson.Gson;
 +import com.google.gson.JsonObject;
@@ -55,7 +58,7 @@ diff -Nru decomped/src/main/java/com/mojang/rubydung/pissmc/Loader.java src/main
 +public class Loader {
 +    private static HashMap<Event, ArrayList<Consumer<EventResult>>> eventHandlers = new HashMap<>();
 +
-+    public static void create() throws ClassNotFoundException, NoSuchMethodException, SecurityException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, IOException {
++    public static void create() throws ClassNotFoundException, NoSuchMethodException, SecurityException, InstantiationException, IllegalAccessException, IllegalArgumentException, IOException {
 +        for (Event e : Event.values()) {
 +            eventHandlers.put(e, new ArrayList<>());
 +        }
@@ -71,13 +74,34 @@ diff -Nru decomped/src/main/java/com/mojang/rubydung/pissmc/Loader.java src/main
 +            try {
 +                mainClass = new Gson().fromJson(new InputStreamReader(jarLoader.getResourceAsStream("META-INF/piss.json")), JsonObject.class).get("class").getAsString();
 +            } catch (Exception e) {
-+                System.out.println(String.format("Ignoring \"%s\" mod (broken jar)", f.getName().split(".")[0]));
-+                e.printStackTrace();
++                Logger.printErr(e, "broken jar", f);
 +                continue;
 +            }
++
++            JarFile jar = new JarFile(f);
++            Enumeration<JarEntry> entries = jar.entries();
++            Class<?> modClass = null;
++            while (entries.hasMoreElements()) {
++                JarEntry e = entries.nextElement();
++                if (e.isDirectory() || !e.getName().endsWith(".class")) continue;
++                
++                try {
++                    String name = e.getName().replaceAll("\\.class", "").replaceAll("/", ".");
++                    if (name.equals(mainClass)) modClass = jarLoader.loadClass(name);
++                    else jarLoader.loadClass(name);
++                } catch (ClassNotFoundException e1) {}
++            }
++            jar.close();
 +            
-+            Class<?> modClass = jarLoader.loadClass(mainClass);
-+            modClass.getConstructor().newInstance();
++            if (modClass==null) {
++                Logger.printErr(null, "main class not found", f);
++                continue;
++            }
++            try {
++                modClass.getConstructor().newInstance();
++            } catch (InvocationTargetException e) {
++                Logger.printErr(e, "mod exception", f);
++            }
 +            jarLoader.close();
 +        }
 +    }
@@ -92,8 +116,22 @@ diff -Nru decomped/src/main/java/com/mojang/rubydung/pissmc/Loader.java src/main
 +        return result;
 +    }
 +}
+diff -Nru decomped/src/main/java/com/mojang/rubydung/pissmc/Logger.java src/main/java/com/mojang/rubydung/pissmc/Logger.java
+--- decomped/src/main/java/com/mojang/rubydung/pissmc/Logger.java	1970-01-01 03:00:00.000000000 +0300
++++ src/main/java/com/mojang/rubydung/pissmc/Logger.java	2023-09-29 21:47:56.000798093 +0300
+@@ -0,0 +1,10 @@
++package com.mojang.rubydung.pissmc;
++
++import java.io.File;
++
++public class Logger {
++    public static void printErr(Exception err, String reason, File file) {
++        System.out.println(String.format("Ignoring \"%s\" mod (%s)", file.getName().split("\\.")[0], reason));
++        if (err!=null) err.printStackTrace();
++    }
++}
 diff -Nru decomped/src/main/java/com/mojang/rubydung/Player.java src/main/java/com/mojang/rubydung/Player.java
---- decomped/src/main/java/com/mojang/rubydung/Player.java	2023-09-28 23:37:05.805219712 +0300
+--- decomped/src/main/java/com/mojang/rubydung/Player.java	2023-09-29 21:53:46.100949626 +0300
 +++ src/main/java/com/mojang/rubydung/Player.java	2023-09-28 23:36:27.601262104 +0300
 @@ -2,6 +2,9 @@
  
@@ -140,7 +178,7 @@ diff -Nru decomped/src/main/java/com/mojang/rubydung/Player.java src/main/java/c
      this.yd = (float)(this.yd - 0.005D);
      move(this.xd, this.yd, this.zd);
 diff -Nru decomped/src/main/java/com/mojang/rubydung/RubyDung.java src/main/java/com/mojang/rubydung/RubyDung.java
---- decomped/src/main/java/com/mojang/rubydung/RubyDung.java	2023-09-28 23:37:05.837219671 +0300
+--- decomped/src/main/java/com/mojang/rubydung/RubyDung.java	2023-09-29 21:53:46.152949632 +0300
 +++ src/main/java/com/mojang/rubydung/RubyDung.java	2023-09-28 23:35:30.005320633 +0300
 @@ -3,7 +3,11 @@
  import com.mojang.rubydung.level.Chunk;
