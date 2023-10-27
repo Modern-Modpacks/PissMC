@@ -4,6 +4,8 @@ run-name: Publishing the website...
 on:
   push:
     branches: [ "main" ]
+    paths:
+      - website/**
 
   workflow_dispatch:
 
