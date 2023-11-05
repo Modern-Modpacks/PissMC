@@ -1,155 +1,18 @@
-diff -Nru decomped/src/main/java/com/mojang/rubydung/pissmc/Event.java src/main/java/com/mojang/rubydung/pissmc/Event.java
---- decomped/src/main/java/com/mojang/rubydung/pissmc/Event.java	1970-01-01 03:00:00.000000000 +0300
-+++ src/main/java/com/mojang/rubydung/pissmc/Event.java	2023-09-28 23:35:44.509304326 +0300
-@@ -0,0 +1,11 @@
-+package com.mojang.rubydung.pissmc;
-+
-+public enum Event {
-+    GAME_LOAD,
-+    GAME_DESTROY,
-+    PRE_PLAYER_TICK,
-+    POST_PLAYER_TICK,
-+    PLAYER_JUMP,
-+    PRE_RENDER_TICK,
-+    POST_RENDER_TICK
-+}
-diff -Nru decomped/src/main/java/com/mojang/rubydung/pissmc/EventResult.java src/main/java/com/mojang/rubydung/pissmc/EventResult.java
---- decomped/src/main/java/com/mojang/rubydung/pissmc/EventResult.java	1970-01-01 03:00:00.000000000 +0300
-+++ src/main/java/com/mojang/rubydung/pissmc/EventResult.java	2023-09-24 20:33:09.691734989 +0300
-@@ -0,0 +1,15 @@
-+package com.mojang.rubydung.pissmc;
-+
-+public class EventResult {
-+    private boolean canceled = false;
-+
-+    public void setCanceled(boolean newVal) {
-+        canceled = newVal;
-+    }
-+    public void cancel() {
-+        setCanceled(true);
-+    }
-+    public boolean isCanceled() {
-+        return canceled;
-+    }
-+}
-diff -Nru decomped/src/main/java/com/mojang/rubydung/pissmc/Loader.java src/main/java/com/mojang/rubydung/pissmc/Loader.java
---- decomped/src/main/java/com/mojang/rubydung/pissmc/Loader.java	1970-01-01 03:00:00.000000000 +0300
-+++ src/main/java/com/mojang/rubydung/pissmc/Loader.java	2023-09-29 22:30:39.091070672 +0300
-@@ -0,0 +1,86 @@
-+package com.mojang.rubydung.pissmc;
-+
-+import java.io.File;
-+import java.io.FilenameFilter;
-+import java.io.IOException;
-+import java.io.InputStreamReader;
-+import java.lang.reflect.InvocationTargetException;
-+import java.net.URL;
-+import java.net.URLClassLoader;
-+import java.nio.file.Paths;
-+import java.util.ArrayList;
-+import java.util.Enumeration;
-+import java.util.HashMap;
-+import java.util.function.Consumer;
-+import java.util.jar.JarEntry;
-+import java.util.jar.JarFile;
-+
-+import com.google.gson.Gson;
-+import com.google.gson.JsonObject;
-+
-+public class Loader {
-+    private static HashMap<Event, ArrayList<Consumer<EventResult>>> eventHandlers = new HashMap<>();
-+
-+    public static void create() throws ClassNotFoundException, NoSuchMethodException, SecurityException, InstantiationException, IllegalAccessException, IllegalArgumentException, IOException {
-+        for (Event e : Event.values()) {
-+            eventHandlers.put(e, new ArrayList<>());
-+        }
-+
-+        for (File f : getModFiles()) {
-+            URLClassLoader jarLoader = new URLClassLoader(new URL[]{f.toURI().toURL()});
-+
-+            String mainClass;
-+            try {
-+                mainClass = new Gson().fromJson(new InputStreamReader(jarLoader.getResourceAsStream("META-INF/piss.json")), JsonObject.class).get("class").getAsString();
-+            } catch (Exception e) {
-+                Logger.printErr(e, "broken jar", f);
-+                continue;
-+            }
-+
-+            JarFile jar = new JarFile(f);
-+            Enumeration<JarEntry> entries = jar.entries();
-+            while (entries.hasMoreElements()) {
-+                JarEntry e = entries.nextElement();
-+                if (e.isDirectory() || !e.getName().endsWith(".class")) continue;
-+                
-+                String name = e.getName().replaceAll("\\.class", "").replaceAll("/", ".");
-+                if (!name.equals(mainClass)) {
-+                    try {jarLoader.loadClass(name);} 
-+                    catch (ClassNotFoundException | UnsupportedClassVersionError e1) {}
-+                }
-+            }
-+            jar.close();
-+
-+            Class<?> modClass = jarLoader.loadClass(mainClass);
-+            
-+            if (modClass==null) {
-+                Logger.printErr(null, "main class not found", f);
-+                continue;
-+            }
-+            try {
-+                modClass.getConstructor().newInstance();
-+            } catch (InvocationTargetException e) {
-+                Logger.printErr(e, "mod exception", f);
-+            }
-+            jarLoader.close();
-+        }
-+    }
-+    public static void addEventHandler(Event e, Consumer<EventResult> handler) {
-+        eventHandlers.get(e).add(handler);
-+    }
-+    public static EventResult triggerEvent(Event e) {
-+        EventResult result = new EventResult();
-+        for (Consumer<EventResult> h : eventHandlers.get(e)) {
-+            h.accept(result);
-+        }
-+        return result;
-+    }
-+    public static File[] getModFiles() {
-+        File modsDir = Paths.get(System.getProperty("user.dir"), "mods").toFile();
-+        if (!modsDir.exists()) modsDir.mkdir();
-+        return modsDir.listFiles(new FilenameFilter() {
-+            @Override
-+            public boolean accept(File dir, String name) {return name.endsWith(".jar");}
-+        });
-+    }
-+}
-diff -Nru decomped/src/main/java/com/mojang/rubydung/pissmc/Logger.java src/main/java/com/mojang/rubydung/pissmc/Logger.java
---- decomped/src/main/java/com/mojang/rubydung/pissmc/Logger.java	1970-01-01 03:00:00.000000000 +0300
-+++ src/main/java/com/mojang/rubydung/pissmc/Logger.java	2023-09-29 21:47:56.000798093 +0300
-@@ -0,0 +1,10 @@
-+package com.mojang.rubydung.pissmc;
-+
-+import java.io.File;
-+
-+public class Logger {
-+    public static void printErr(Exception err, String reason, File file) {
-+        System.out.println(String.format("Ignoring \"%s\" mod (%s)", file.getName().split("\\.")[0], reason));
-+        if (err!=null) err.printStackTrace();
-+    }
-+}
 diff -Nru decomped/src/main/java/com/mojang/rubydung/Player.java src/main/java/com/mojang/rubydung/Player.java
---- decomped/src/main/java/com/mojang/rubydung/Player.java	2023-09-29 22:34:22.751340376 +0300
-+++ src/main/java/com/mojang/rubydung/Player.java	2023-09-28 23:36:27.601262104 +0300
-@@ -2,6 +2,9 @@
+--- decomped/src/main/java/com/mojang/rubydung/Player.java	2023-11-05 17:19:53.584073570 +0300
++++ src/main/java/com/mojang/rubydung/Player.java	2023-11-05 15:58:36.259550015 +0300
+@@ -2,6 +2,10 @@
  
  import com.mojang.rubydung.level.Level;
  import com.mojang.rubydung.phys.AABB;
-+import com.mojang.rubydung.pissmc.Event;
-+import com.mojang.rubydung.pissmc.Loader;
++
++import site.modernmodpacks.pissmc.Loader;
++import site.modernmodpacks.pissmc.event.Event;
 +
  import java.util.List;
  import org.lwjgl.input.Keyboard;
  
-@@ -25,6 +28,10 @@
+@@ -25,6 +29,10 @@
    public float yd;
    
    public float zd;
@@ -160,7 +23,7 @@ diff -Nru decomped/src/main/java/com/mojang/rubydung/Player.java src/main/java/c
    
    public float yRot;
    
-@@ -68,8 +75,8 @@
+@@ -68,8 +76,8 @@
      this.xo = this.x;
      this.yo = this.y;
      this.zo = this.z;
@@ -171,7 +34,7 @@ diff -Nru decomped/src/main/java/com/mojang/rubydung/Player.java src/main/java/c
      if (Keyboard.isKeyDown(19))
        resetPos(); 
      if (Keyboard.isKeyDown(200) || Keyboard.isKeyDown(17))
-@@ -81,8 +88,9 @@
+@@ -81,8 +89,9 @@
      if (Keyboard.isKeyDown(205) || Keyboard.isKeyDown(32))
        xa++; 
      if (Keyboard.isKeyDown(57) || Keyboard.isKeyDown(219))
@@ -184,21 +47,22 @@ diff -Nru decomped/src/main/java/com/mojang/rubydung/Player.java src/main/java/c
      this.yd = (float)(this.yd - 0.005D);
      move(this.xd, this.yd, this.zd);
 diff -Nru decomped/src/main/java/com/mojang/rubydung/RubyDung.java src/main/java/com/mojang/rubydung/RubyDung.java
---- decomped/src/main/java/com/mojang/rubydung/RubyDung.java	2023-09-29 22:34:22.803340439 +0300
-+++ src/main/java/com/mojang/rubydung/RubyDung.java	2023-09-28 23:35:30.005320633 +0300
-@@ -3,7 +3,11 @@
+--- decomped/src/main/java/com/mojang/rubydung/RubyDung.java	2023-11-05 17:19:53.640073451 +0300
++++ src/main/java/com/mojang/rubydung/RubyDung.java	2023-11-05 15:58:25.439586519 +0300
+@@ -3,7 +3,12 @@
  import com.mojang.rubydung.level.Chunk;
  import com.mojang.rubydung.level.Level;
  import com.mojang.rubydung.level.LevelRenderer;
-+import com.mojang.rubydung.pissmc.Event;
-+import com.mojang.rubydung.pissmc.Loader;
++
++import site.modernmodpacks.pissmc.Loader;
++import site.modernmodpacks.pissmc.event.Event;
 +
  import java.io.IOException;
 +import java.lang.reflect.InvocationTargetException;
  import java.nio.FloatBuffer;
  import java.nio.IntBuffer;
  import javax.swing.JOptionPane;
-@@ -17,7 +21,7 @@
+@@ -17,7 +22,7 @@
  import org.lwjgl.util.glu.GLU;
  
  public class RubyDung implements Runnable {
@@ -207,7 +71,7 @@ diff -Nru decomped/src/main/java/com/mojang/rubydung/RubyDung.java src/main/java
    
    private int width;
    
-@@ -32,15 +36,19 @@
+@@ -32,15 +37,19 @@
    private LevelRenderer levelRenderer;
    
    private Player player;
@@ -233,7 +97,7 @@ diff -Nru decomped/src/main/java/com/mojang/rubydung/RubyDung.java src/main/java
      Display.create();
      Keyboard.create();
      Mouse.create();
-@@ -59,6 +67,7 @@
+@@ -59,6 +68,7 @@
      this.levelRenderer = new LevelRenderer(this.level);
      this.player = new Player(this.level);
      Mouse.setGrabbed(true);
@@ -241,7 +105,7 @@ diff -Nru decomped/src/main/java/com/mojang/rubydung/RubyDung.java src/main/java
    }
    
    public void destroy() {
-@@ -78,7 +87,9 @@
+@@ -78,7 +88,9 @@
      long lastTime = System.currentTimeMillis();
      int frames = 0;
      try {
@@ -252,7 +116,7 @@ diff -Nru decomped/src/main/java/com/mojang/rubydung/RubyDung.java src/main/java
          this.timer.advanceTime();
          for (int i = 0; i < this.timer.ticks; i++)
            tick(); 
-@@ -99,7 +110,9 @@
+@@ -99,7 +111,9 @@
    }
    
    public void tick() {
@@ -262,7 +126,7 @@ diff -Nru decomped/src/main/java/com/mojang/rubydung/RubyDung.java src/main/java
    }
    
    private void moveCameraToPlayer(float a) {
-@@ -176,6 +189,7 @@
+@@ -176,6 +190,7 @@
    }
    
    public void render(float a) {
@@ -270,7 +134,7 @@ diff -Nru decomped/src/main/java/com/mojang/rubydung/RubyDung.java src/main/java
      float xo = Mouse.getDX();
      float yo = Mouse.getDY();
      this.player.turn(xo, yo);
-@@ -224,6 +238,7 @@
+@@ -224,6 +239,7 @@
        this.levelRenderer.renderHit(this.hitResult); 
      GL11.glDisable(2912);
      Display.update();
@@ -278,7 +142,7 @@ diff -Nru decomped/src/main/java/com/mojang/rubydung/RubyDung.java src/main/java
    }
    
    public static void checkError() {
-@@ -235,4 +250,11 @@
+@@ -235,4 +251,11 @@
    public static void main(String[] args) throws LWJGLException {
      (new Thread(new RubyDung())).start();
    }
@@ -290,3 +154,216 @@ diff -Nru decomped/src/main/java/com/mojang/rubydung/RubyDung.java src/main/java
 +    return player;
 +  }
  }
+diff -Nru decomped/src/main/java/site/modernmodpacks/pissmc/data/PissJson.java src/main/java/site/modernmodpacks/pissmc/data/PissJson.java
+--- decomped/src/main/java/site/modernmodpacks/pissmc/data/PissJson.java	1970-01-01 03:00:00.000000000 +0300
++++ src/main/java/site/modernmodpacks/pissmc/data/PissJson.java	2023-11-05 17:09:17.745407165 +0300
+@@ -0,0 +1,25 @@
++package site.modernmodpacks.pissmc.data;
++
++import java.util.ArrayList;
++
++public class PissJson {
++    public String modId;
++    public String mainClass;
++    private ArrayList<String> dependencies;
++
++    public ArrayList<String> getDependencies() {
++        return dependencies!=null ? dependencies : new ArrayList<>();
++    }
++
++    public boolean checkMandatoryFields() {
++        final Object[] MANDATORY_FIELDS = {
++            modId,
++            mainClass
++        };
++
++        for(Object i : MANDATORY_FIELDS) {
++            if (i==null) return false;
++        }
++        return true;
++    }
++}
+diff -Nru decomped/src/main/java/site/modernmodpacks/pissmc/event/Event.java src/main/java/site/modernmodpacks/pissmc/event/Event.java
+--- decomped/src/main/java/site/modernmodpacks/pissmc/event/Event.java	1970-01-01 03:00:00.000000000 +0300
++++ src/main/java/site/modernmodpacks/pissmc/event/Event.java	2023-11-05 15:57:54.975360430 +0300
+@@ -0,0 +1,11 @@
++package site.modernmodpacks.pissmc.event;
++
++public enum Event {
++    GAME_LOAD,
++    GAME_DESTROY,
++    PRE_PLAYER_TICK,
++    POST_PLAYER_TICK,
++    PLAYER_JUMP,
++    PRE_RENDER_TICK,
++    POST_RENDER_TICK
++}
+diff -Nru decomped/src/main/java/site/modernmodpacks/pissmc/event/EventResult.java src/main/java/site/modernmodpacks/pissmc/event/EventResult.java
+--- decomped/src/main/java/site/modernmodpacks/pissmc/event/EventResult.java	1970-01-01 03:00:00.000000000 +0300
++++ src/main/java/site/modernmodpacks/pissmc/event/EventResult.java	2023-11-05 15:57:54.263354142 +0300
+@@ -0,0 +1,15 @@
++package site.modernmodpacks.pissmc.event;
++
++public class EventResult {
++    private boolean canceled = false;
++
++    public void setCanceled(boolean newVal) {
++        canceled = newVal;
++    }
++    public void cancel() {
++        setCanceled(true);
++    }
++    public boolean isCanceled() {
++        return canceled;
++    }
++}
+diff -Nru decomped/src/main/java/site/modernmodpacks/pissmc/Loader.java src/main/java/site/modernmodpacks/pissmc/Loader.java
+--- decomped/src/main/java/site/modernmodpacks/pissmc/Loader.java	1970-01-01 03:00:00.000000000 +0300
++++ src/main/java/site/modernmodpacks/pissmc/Loader.java	2023-11-05 17:09:01.425441382 +0300
+@@ -0,0 +1,130 @@
++package site.modernmodpacks.pissmc;
++
++import java.io.File;
++import java.io.FilenameFilter;
++import java.io.IOException;
++import java.io.InputStream;
++import java.io.InputStreamReader;
++import java.lang.reflect.InvocationTargetException;
++import java.net.URL;
++import java.net.URLClassLoader;
++import java.nio.file.Paths;
++import java.util.ArrayList;
++import java.util.Enumeration;
++import java.util.HashMap;
++import java.util.function.Consumer;
++import java.util.jar.JarEntry;
++import java.util.jar.JarFile;
++
++import com.google.gson.Gson;
++import site.modernmodpacks.pissmc.data.PissJson;
++import site.modernmodpacks.pissmc.event.Event;
++import site.modernmodpacks.pissmc.event.EventResult;
++import site.modernmodpacks.pissmc.util.Logger;
++
++public class Loader {
++    private static HashMap<Event, ArrayList<Consumer<EventResult>>> eventHandlers = new HashMap<>();
++
++    private static ArrayList<String> processedMods = new ArrayList<>();
++    private static ArrayList<String> loadedMods = new ArrayList<>();
++    private static HashMap<String, File> modidToFile = new HashMap<>();
++
++    public static void create() throws ClassNotFoundException, NoSuchMethodException, SecurityException, InstantiationException, IllegalAccessException, IllegalArgumentException, IOException {
++        for (Event e : Event.values()) eventHandlers.put(e, new ArrayList<>());
++
++        File[] modFiles = getModFiles();
++        for (File f : modFiles) {
++            PissJson pissjson = getPissJson(f);
++            if (pissjson.checkMandatoryFields()) modidToFile.put(pissjson.modId, f);
++        }
++        for (File f : modFiles) loadJar(f);
++    }
++    private static void loadJar(File filejar) throws IOException, ClassNotFoundException, InstantiationException, IllegalAccessException, IllegalArgumentException, NoSuchMethodException, SecurityException {
++        if (processedMods.contains(filejar.getName())) return;
++        processedMods.add(filejar.getName());
++
++        URLClassLoader jarLoader = new URLClassLoader(new URL[]{filejar.toURI().toURL()});
++
++        PissJson pissjson = getPissJson(filejar);
++        if(!pissjson.checkMandatoryFields()) {
++            Logger.printErr(null, "Incorrect piss.json structure", filejar);
++            jarLoader.close();
++            return;
++        }
++        for (String d : pissjson.getDependencies()) {
++            if (modidToFile.keySet().contains(d)) loadJar(modidToFile.get(d));
++            else {
++                Logger.printErr(null, String.format("Dependency \"%s\" not found/installed", d), filejar);
++                jarLoader.close();
++                return;
++            }
++        }
++
++        JarFile jar = new JarFile(filejar);
++        Enumeration<JarEntry> entries = jar.entries();
++        while (entries.hasMoreElements()) {
++            JarEntry e = entries.nextElement();
++            if (e.isDirectory() || !e.getName().endsWith(".class")) continue;
++            
++            String name = e.getName().replaceAll("\\.class", "").replaceAll("/", ".");
++            if (!name.equals(pissjson.mainClass)) {
++                try {jarLoader.loadClass(name);} 
++                catch (ClassNotFoundException | UnsupportedClassVersionError e1) {}
++            }
++        }
++        jar.close();
++
++        Class<?> modClass = jarLoader.loadClass(pissjson.mainClass);
++        
++        if (modClass==null) {
++            Logger.printErr(null, "Main class not found", filejar);
++            jarLoader.close();
++            return;
++        }
++        try {
++            modClass.getConstructor().newInstance();
++        } catch (InvocationTargetException e) {
++            Logger.printErr(e, "Mod exception", filejar);
++            jarLoader.close();
++            return;
++        }
++
++        loadedMods.add(pissjson.modId);
++        jarLoader.close();
++    }
++    private static PissJson getPissJson(File filejar) throws IOException {
++        URLClassLoader jarLoader = new URLClassLoader(new URL[]{filejar.toURI().toURL()});
++
++        InputStream pissjsonStream = jarLoader.getResourceAsStream("META-INF/piss.json");
++        if (pissjsonStream==null) {
++            jarLoader.close();
++            return new PissJson();
++        }
++
++        PissJson pissjson = new Gson().fromJson(new InputStreamReader(pissjsonStream), PissJson.class);
++        jarLoader.close();
++
++        return pissjson;
++    }
++    public static void addEventHandler(Event e, Consumer<EventResult> handler) {
++        eventHandlers.get(e).add(handler);
++    }
++    public static EventResult triggerEvent(Event e) {
++        EventResult result = new EventResult();
++        for (Consumer<EventResult> h : eventHandlers.get(e)) {
++            h.accept(result);
++        }
++        return result;
++    }
++    private static File[] getModFiles() {
++        File modsDir = Paths.get(System.getProperty("user.dir"), "mods").toFile();
++        if (!modsDir.exists()) modsDir.mkdir();
++        return modsDir.listFiles(new FilenameFilter() {
++            @Override
++            public boolean accept(File dir, String name) {return name.endsWith(".jar");}
++        });
++    }
++    public static ArrayList<String> getLoadedModIds() {
++        return loadedMods;
++    }
++}
+diff -Nru decomped/src/main/java/site/modernmodpacks/pissmc/util/Logger.java src/main/java/site/modernmodpacks/pissmc/util/Logger.java
+--- decomped/src/main/java/site/modernmodpacks/pissmc/util/Logger.java	1970-01-01 03:00:00.000000000 +0300
++++ src/main/java/site/modernmodpacks/pissmc/util/Logger.java	2023-11-05 16:47:40.944126994 +0300
+@@ -0,0 +1,12 @@
++package site.modernmodpacks.pissmc.util;
++
++import java.io.File;
++
++import javax.annotation.Nullable;
++
++public class Logger {
++    public static void printErr(@Nullable Exception err, String reason, File file) {
++        System.out.println(String.format("Ignoring \"%s\" mod (%s)", file.getName().split("\\.")[0], reason));
++        if (err!=null) err.printStackTrace();
++    }
++}
