@@ -53,7 +53,7 @@
   </div>
 
   <div class="bg-dark text-white text-center py-4">
-    <p>I don't know what to write here xd</p>
+    <p>ZeldaLord should activate windows</p>
     <p>God bootstrap is so bad</p>
     <div class="d-flex gap-3 justify-content-center">
       {#await get_installer_link()}
