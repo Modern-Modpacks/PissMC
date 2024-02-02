@@ -1,0 +1,53 @@
+name: deploy-installer
+run-name: Deploying the installer...
+
+on: [workflow_dispatch]
+
+jobs:
+  release:
+    name: Creating a release...
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Get last release info
+        uses: cardinalby/git-get-release-action@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          releaseNameRegEx: "PissMC Installer I*"
+          doNotFailIfNotFound: true
+        id: release_info
+      - name: Get new tally mark amount
+        env:
+          OLDNAME: ${{ steps.release_info.outputs.name }}
+        run: echo "::set-output name=fragment::${OLDNAME##* }I"
+        id: split
+      - name: Create new release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: "i(${{ steps.split.outputs.fragment }})"
+          release_name: "PissMC Installer ${{ steps.split.outputs.fragment }}"
+          body: "Release"
+        id: create_release
+
+  build:
+    name: Building the installer...
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+
+      - name: Install dependencies
+        run: |
+          cd installer
+          pip install -r requirements.txt pyinstaller
+          pyinstaller pissmc-installer.spec
+          ls dist

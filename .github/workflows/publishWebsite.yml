@@ -1,4 +1,4 @@
-name: publishwebsite
+name: publish-website
 run-name: Publishing the website...
 
 on:
