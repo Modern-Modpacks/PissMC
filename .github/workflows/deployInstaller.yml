@@ -57,7 +57,7 @@ jobs:
           cd installer
           pip install -r requirements.txt pyinstaller
           pyinstaller pissmc-installer.spec
-          python -c "from os import listdir; print(listdir('dist')[0])" >> $GITHUB_ENV
+          FILE=$(python -c "from os import listdir; print(listdir('dist')[0])") >> $GITHUB_ENV
       
       - name: Upload assets
         uses: actions/upload-release-asset@v1
