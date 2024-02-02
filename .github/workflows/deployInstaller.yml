@@ -57,7 +57,12 @@ jobs:
           cd installer
           pip install -r requirements.txt pyinstaller
           pyinstaller pissmc-installer.spec
-          echo "FILE=pissmc-installer${{ steps.system-info.outputs.platform == 'win32' && '.exe' || '' }}" >> $GITHUB_ENV
+
+      - name: Get output filename
+        run: |
+          cd installer
+          echo "::set-output name=fragment::$(python -c "from os import listdir; print(listdir('dist')[0])")"
+        id: output_filename
       
       - name: Upload assets
         uses: actions/upload-release-asset@v1
@@ -65,6 +70,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ needs.release.outputs.upload_url }}
-          asset_path: "installer/dist/${{ env.FILE }}"
-          asset_name: ${{ steps.system-info.outputs.platform }}-${{ env.FILE }}
+          asset_path: "installer/dist/${{ steps.output_filename.outputs.fragment }}"
+          asset_name: ${{ steps.system-info.outputs.platform }}-${{ steps.output_filename.outputs.fragment }}
           asset_content_type: ${{ steps.system-info.outputs.platform == 'win32' && 'application/x-msdownload' || 'application/x-elf' }}
