@@ -58,7 +58,7 @@ jobs:
           pip install -r requirements.txt pyinstaller
           pyinstaller pissmc-installer.spec
           echo "FILE=$(ls -d dist/*)" >> $GITHUB_ENV
-          echo "FILENAME=$(cd build/libs; ls *)" >> $GITHUB_ENV
+          echo "FILENAME=$(cd dist; ls *)" >> $GITHUB_ENV
       
       - name: Upload assets
         uses: actions/upload-release-asset@v1
