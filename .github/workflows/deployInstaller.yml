@@ -68,4 +68,4 @@ jobs:
           upload_url: ${{ needs.release.outputs.upload_url }}
           asset_path: ${{ env.FILE }}
           asset_name: ${{ steps.system-info.outputs.platform }}-${{ env.FILENAME }}
-          asset_content_type:  ${{ steps.system-info.outputs.platform == "win32" && "application/x-msdownload" || "application/x-elf" }}
+          asset_content_type: ${{ steps.system-info.outputs.platform == 'win32' && 'application/x-msdownload' || 'application/x-elf' }}
