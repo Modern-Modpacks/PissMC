@@ -21,4 +21,4 @@ jobs:
           cd installer
           pip install -r requirements.txt pyinstaller
           pyinstaller pissmc-installer.spec
-          ls
+          ls dist
