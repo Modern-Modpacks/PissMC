@@ -69,7 +69,7 @@ jobs:
       - name: Upload the jar to be used in the next job
         uses: actions/upload-artifact@master
         with:
-          name: piss.jar
+          name: pissjar
           path: piss/build/libs/pissmc-all.jar
 
   upload:
@@ -97,7 +97,7 @@ jobs:
         run: echo "::set-output name=fragment::${${TAG#m\(}%\)}"
         id: split
       - name: Rename the jar with the version
-        run: mv piss.jar pissmc-${{ steps.split.outputs.fragment!=null && steps.split.outputs.fragment || github.event.inputs.version }}.jar
+        run: mv pissjar/pissmc-all.jar pissmc-${{ steps.split.outputs.fragment!=null && steps.split.outputs.fragment || github.event.inputs.version }}.jar
       
       - name: Log in as github actions bot
         run: |
