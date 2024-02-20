@@ -104,7 +104,7 @@ jobs:
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
           git add .
-          git commit -m "Format KJS code"
+          git commit -m "[m(${{ steps.split.outputs.fragment!=null && steps.split.outputs.fragment || github.event.inputs.version }})] Upload new PissMC version jar"
         continue-on-error: true
       - name: Commit and push to the maven branch
         uses: ad-m/github-push-action@master
