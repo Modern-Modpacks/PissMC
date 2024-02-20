@@ -88,8 +88,8 @@ jobs:
       - name: Download the patched jar
         uses: actions/download-artifact@master
         with:
-          name: piss.jar
-          path: piss.jar
+          name: pissjar
+          path: pissjar
       - name: Get the tally mark version
         if: github.event.inputs.version==null
         env:
