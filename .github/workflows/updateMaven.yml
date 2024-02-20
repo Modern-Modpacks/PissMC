@@ -1,0 +1,60 @@
+name: update-maven
+run-name: Uploading the new version to maven...
+
+on:
+  release:
+    types: [published]
+
+  workflow_dispatch:
+    inputs:
+        version:
+          description: "Version Name"
+          required: true
+
+jobs:
+  patch:
+    name: Download and patch rd-132211
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - if: github.event.release.tag_name!=null && (!startsWith(github.event.release.tag_name, 'M(') || endsWith(github.event.release.tag_name, 'b)'))
+        run: exit 0
+        name: Check if the release format is correct
+
+      - run: mkdir piss
+        name: Create a workspace folder
+      - run: wget https://launcher.mojang.com/v1/objects/393e8d4b4d708587e2accd7c5221db65365e1075/client.jar -o piss/original.jar
+        name: Download rd-132211
+      - run: wget https://raw.githubusercontent.com/Modern-Modpacks/PissMC/main/modloader/pissmc-${{ github.event_name == 'release' && 'stable' || 'latest' }}.patch -o piss/piss.patch
+        name: Download the pissmc patch
+      - run: |
+          cd piss
+          for file in "gradlew" "build.gradle" "settings.gradle"
+          do
+            wget "https://raw.githubusercontent.com/Modern-Modpacks/PissMC/main/modloader/gradle/$file"
+          done
+          chmod +x gradlew
+        name: Download gradle files
+      - run: |
+          wget https://github.com/intoolswetrust/jd-cli/releases/download/jd-cli-1.2.0/jd-cli-1.2.0-dist.zip -o piss/jd-cli.zip
+          unzip -p piss/jd-cli.zip jd-cli.jar > piss/jd-cli.jar
+        name: Download jd-cli
+
+      - run: |
+          cd piss
+          java -jar jd-cli.jar original.jar -od decomp
+
+          mkdir -p src/main/java src/main/resources
+          mv decomp/com src/main/java
+          mv decomp/terrain.png src/main/resources
+        name: Decompile rd-132211
+
+      - run: |
+          cd piss
+
+          patch -s -p0 < piss.patch
+          ./gradlew shadowJar
+          ls build/libs/
+        name: Patch and recompile rd-132211
