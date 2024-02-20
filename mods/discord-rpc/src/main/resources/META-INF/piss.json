@@ -1,0 +1,4 @@
+{
+    "modId": "discord_rpc",
+    "mainClass": "site.pissmc.discord.DiscordRPC"
+}

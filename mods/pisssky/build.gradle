@@ -1,0 +1,19 @@
+plugins {
+    id 'java-library'
+}
+
+repositories {
+    mavenCentral()
+    maven {
+        url "https://repo1.maven.org/maven2"
+    }
+    maven {
+        url "https://github.com/Modern-Modpacks/PissMC/raw/maven"
+    }
+}
+
+dependencies {
+    implementation 'site.pissmc:PissMC:IIb'
+    implementation 'com.google.code.gson:gson:2.10.1'
+    implementation group: 'org.lwjgl.lwjgl', name: 'lwjgl', version: '2.9.2'
+}

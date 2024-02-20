@@ -1,0 +1,27 @@
+plugins {
+    id 'java-library'
+    id 'com.github.johnrengelman.shadow' version '7.1.2'
+}
+
+repositories {
+    mavenCentral()
+    jcenter()
+    maven {
+        url "https://repo1.maven.org/maven2"
+    }
+    maven {
+        url "https://github.com/Modern-Modpacks/PissMC/raw/maven"
+    }
+}
+
+dependencies {
+    implementation 'site.pissmc:PissMC:IIb'
+    implementation 'com.google.code.gson:gson:2.10.1'
+    implementation group: 'org.lwjgl.lwjgl', name: 'lwjgl', version: '2.9.2'
+    implementation group: 'org.slf4j', name: 'slf4j-log4j12', version: '1.7.29'
+    implementation files("lib/minecraft-piss-client.jar")
+    implementation 'io.github.CDAGaming:DiscordIPC:0.8.1'
+    implementation 'com.kohlschutter.junixsocket:junixsocket-core:2.8.0'
+    implementation 'javax.jms:jms-api:1.1-rev-1'
+    implementation group: 'com.sun.mail', name: 'javax.mail', version: '1.6.2'
+}
