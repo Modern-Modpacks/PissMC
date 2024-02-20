@@ -104,8 +104,20 @@ jobs:
         id: split
       - name: Rename the jar with the version
         run: mv pissjar/pissmc-all.jar pissmc-${{ steps.split.outputs.fragment!=null && steps.split.outputs.fragment || github.event.inputs.version }}.jar
+      - name: Generate pom and other maven stuff
+        run: mvn install:install-file -DgroupId=site.pissmc -DartifactId=PissMC -Dversion=${{ steps.split.outputs.fragment!=null && steps.split.outputs.fragment || github.event.inputs.version }} -Dfile=pissmc-${{ steps.split.outputs.fragment!=null && steps.split.outputs.fragment || github.event.inputs.version }}.jar -Dpackaging=jar -DlocalRepositoryPath=. -DcreateChecksum=true -DgeneratePom=true
+      - name: Upload the jar as a release artifact (if applicable)
+        if: github.event_name == 'release'
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: "pissmc-${{ steps.split.outputs.fragment!=null && steps.split.outputs.fragment || github.event.inputs.version }}.jar"
+          asset_name: pissmc-${{ steps.split.outputs.fragment!=null && steps.split.outputs.fragment || github.event.inputs.version }}.jar
+          asset_content_type: application/java-archive
       - name: Cleanup
-        run: rm -rf pissjar
+        run: rm -rf pissjar pissmc-${{ steps.split.outputs.fragment!=null && steps.split.outputs.fragment || github.event.inputs.version }}.jar
 
       - name: Log in as github actions bot
         run: |
