@@ -25,7 +25,7 @@ jobs:
 
       - run: mkdir piss
         name: Create a workspace folder
-      - run: wget https://launcher.mojang.com/v1/objects/393e8d4b4d708587e2accd7c5221db65365e1075/client.jar -o piss/original.jar
+      - run: wget https://launcher.mojang.com/v1/objects/393e8d4b4d708587e2accd7c5221db65365e1075/client.jar -O piss/original.jar
         name: Download rd-132211
       - run: wget https://raw.githubusercontent.com/Modern-Modpacks/PissMC/main/modloader/pissmc-${{ github.event_name == 'release' && 'stable' || 'latest' }}.patch -o piss/piss.patch
         name: Download the pissmc patch
@@ -38,7 +38,7 @@ jobs:
           chmod +x gradlew
         name: Download gradle files
       - run: |
-          wget https://github.com/intoolswetrust/jd-cli/releases/download/jd-cli-1.2.0/jd-cli-1.2.0-dist.zip -o piss/jd-cli.zip
+          wget https://github.com/intoolswetrust/jd-cli/releases/download/jd-cli-1.2.0/jd-cli-1.2.0-dist.zip -O piss/jd-cli.zip
           unzip -p piss/jd-cli.zip jd-cli.jar > piss/jd-cli.jar
         name: Download jd-cli
 
