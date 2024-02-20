@@ -13,7 +13,7 @@
 
 <main>
   <div class="text-center bg-secondary text-white py-5">
-    <img class="h-25 w-25 mx-auto" draggable="false" src="https://user-images.githubusercontent.com/79367505/270132869-44149f1d-76f5-402c-a4af-0c7dc29f86c7.png" alt="logo">
+    <img class="h-25 w-25 mx-auto" draggable="false" src="https://raw.githubusercontent.com/Modern-Modpacks/assets/main/Icons/Other/pissmc.png" alt="logo">
     <h1 class="fw-bold mt-4">PissMC</h1>
     <h2>Beyond classic</h2>
 
