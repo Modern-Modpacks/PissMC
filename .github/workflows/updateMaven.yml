@@ -103,7 +103,8 @@ jobs:
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          git commit -a -m "Format KJS code"
+          git add .
+          git commit -m "Format KJS code"
         continue-on-error: true
       - name: Commit and push to the maven branch
         uses: ad-m/github-push-action@master
