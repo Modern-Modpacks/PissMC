@@ -69,7 +69,7 @@ jobs:
           cd piss
 
           patch -s -p0 < piss.patch
-          ./gradlew shadowJar
+          ./gradlew --no-daemon shadowJar
           ls build/libs/
 
       - name: Upload the jar to be used in the next job
