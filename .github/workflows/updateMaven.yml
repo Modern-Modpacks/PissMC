@@ -39,7 +39,7 @@ jobs:
         name: Download gradle files
       - run: |
           cd piss
-          mdkir gradle/wrapper
+          mkdir -p gradle/wrapper
           for file in "gradle-wrapper.jar" "gradle-wrapper.properties"
           do
             wget "https://raw.githubusercontent.com/Modern-Modpacks/PissMC/main/modloader/gradle/$file" -O gradle/wrapper/$file
