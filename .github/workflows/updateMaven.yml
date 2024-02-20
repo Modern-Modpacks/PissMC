@@ -98,7 +98,9 @@ jobs:
         id: split
       - name: Rename the jar with the version
         run: mv pissjar/pissmc-all.jar pissmc-${{ steps.split.outputs.fragment!=null && steps.split.outputs.fragment || github.event.inputs.version }}.jar
-      
+      - name: Cleanup
+        run: rm -rf pissjar
+
       - name: Log in as github actions bot
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
