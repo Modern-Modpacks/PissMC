@@ -94,7 +94,7 @@ jobs:
       - name: Set up Maven
         uses: stCarolas/setup-maven@v5
         with:
-          maven-version: 6.6.10
+          maven-version: 3.9.6
 
       - name: Download the patched jar
         uses: actions/download-artifact@master
