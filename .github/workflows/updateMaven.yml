@@ -22,6 +22,12 @@ jobs:
         if: github.event.release.tag_name!=null && (!startsWith(github.event.release.tag_name, 'M(') || endsWith(github.event.release.tag_name, 'b)'))
         run: exit 0
 
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '8'
+          cache: 'gradle'
+
       - name: Create a workspace folder
         run: mkdir piss
       - name: Download rd-132211
