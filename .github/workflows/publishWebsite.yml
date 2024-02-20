@@ -18,11 +18,11 @@ jobs:
         with:
           node-version: latest
           
-      - run: |
+      - name: Build the website
+        run: |
           cd website
           npm install --legacy-peer-deps
           npm run build
-        name: Build the website
       
       - uses: JamesIves/github-pages-deploy-action@4.1.5
         with:

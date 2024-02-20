@@ -18,51 +18,95 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
-
-      - if: github.event.release.tag_name!=null && (!startsWith(github.event.release.tag_name, 'M(') || endsWith(github.event.release.tag_name, 'b)'))
+      - name: Check if the release format is correct
+        if: github.event.release.tag_name!=null && (!startsWith(github.event.release.tag_name, 'M(') || endsWith(github.event.release.tag_name, 'b)'))
         run: exit 0
-        name: Check if the release format is correct
 
-      - run: mkdir piss
-        name: Create a workspace folder
-      - run: wget https://launcher.mojang.com/v1/objects/393e8d4b4d708587e2accd7c5221db65365e1075/client.jar -O piss/original.jar
-        name: Download rd-132211
-      - run: wget https://raw.githubusercontent.com/Modern-Modpacks/PissMC/main/modloader/pissmc-${{ github.event_name == 'release' && 'stable' || 'latest' }}.patch -O piss/piss.patch
-        name: Download the pissmc patch
-      - run: |
+      - name: Create a workspace folder
+        run: mkdir piss
+      - name: Download rd-132211
+        run: wget https://launcher.mojang.com/v1/objects/393e8d4b4d708587e2accd7c5221db65365e1075/client.jar -O piss/original.jar
+      - name: Download the pissmc patch
+        run: wget https://raw.githubusercontent.com/Modern-Modpacks/PissMC/main/modloader/pissmc-${{ github.event_name == 'release' && 'stable' || 'latest' }}.patch -O piss/piss.patch
+      - name: Download gradle files
+        run: |
           cd piss
           for file in "gradlew" "build.gradle" "settings.gradle"
           do
             wget "https://raw.githubusercontent.com/Modern-Modpacks/PissMC/main/modloader/gradle/$file"
           done
           chmod +x gradlew
-        name: Download gradle files
-      - run: |
+      - name: Download gradle wrapper files
+        run: |
           cd piss
           mkdir -p gradle/wrapper
           for file in "wrapper.jar" "wrapper.properties"
           do
             wget "https://raw.githubusercontent.com/Modern-Modpacks/PissMC/main/modloader/gradle/$file" -O gradle/wrapper/gradle-$file
           done
-        name: Download gradle wrapper files
-      - run: |
+      - name: Download jd-cli
+        run: |
           wget https://github.com/intoolswetrust/jd-cli/releases/download/jd-cli-1.2.0/jd-cli-1.2.0-dist.zip -O piss/jd-cli.zip
           unzip -p piss/jd-cli.zip jd-cli.jar > piss/jd-cli.jar
-        name: Download jd-cli
 
-      - run: |
+      - name: Decompile rd-132211
+        run: |
           cd piss
           java -jar jd-cli.jar original.jar -od decomp
 
           mkdir -p src/main/java src/main/resources
           mv decomp/com src/main/java
           mv decomp/terrain.png src/main/resources
-        name: Decompile rd-132211
 
-      - run: |
+      - name: Patch and recompile rd-132211
+        run: |
           cd piss
 
           patch -s -p0 < piss.patch
           ./gradlew shadowJar
           ls build/libs/
-        name: Patch and recompile rd-132211
+
+      - name: Upload the jar to be used in the next job
+        uses: actions/upload-artifact@master
+        with:
+          name: piss.jar
+          path: piss/build/libs/pissmc-all.jar
+
+  upload:
+    name: Upload the jar to maven repo
+    runs-on: ubuntu-latest
+    needs: patch
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          ref: maven
+      - name: Check if the release format is correct
+        if: github.event.release.tag_name!=null && (!startsWith(github.event.release.tag_name, 'M(') || endsWith(github.event.release.tag_name, 'b)'))
+        run: exit 0
+
+      - name: Download the patched jar
+        uses: actions/download-artifact@master
+        with:
+          name: piss.jar
+          path: piss.jar
+      - name: Get the tally mark version
+        if: github.event.inputs.version==null
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+        run: echo "::set-output name=fragment::${${TAG#m\(}%\)}"
+        id: split
+      - name: Rename the jar with the version
+        run: mv piss.jar pissmc-${{ steps.split.outputs.fragment!=null && steps.split.outputs.fragment || github.event.inputs.version }}.jar
+      
+      - name: Log in as github actions bot
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git commit -a -m "Format KJS code"
+        continue-on-error: true
+      - name: Commit and push to the maven branch
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch: ${{ github.ref }}
